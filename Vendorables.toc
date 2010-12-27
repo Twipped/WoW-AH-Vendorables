@@ -1,0 +1,11 @@
+## Interface: 40000
+## Title: Vendorables
+## Notes: Monitor Auction House data for items posted below vendor price
+## Author: ChiperSoft
+## Version: 1.0
+## OptionalDeps: Ace3, LibQTipClick-1.1, LibQTip-1.0
+## SavedVariables: VendorablesDB
+
+embeds.xml
+
+Vendorables.lua

@@ -1,0 +1,12 @@
+tag r9
+eb87cba17cbf82154245f14c430acbd66b8e1131
+James D. Callahan III <darkenelf@gmail.com>
+2009-06-11 23:55:48 -0400
+
+Tagged as r9.
+
+
+--------------------
+
+James D. Callahan III:
+	Changed the highlighter's layer from BACKGROUND to OVERLAY.

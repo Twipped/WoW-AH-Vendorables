@@ -1,0 +1,217 @@
+------------------------------------------------------------------------
+r115 | torhal | 2009-06-22 09:25:31 +0000 (Mon, 22 Jun 2009) | 1 line
+Changed paths:
+   A /tags/r115-release (from /trunk:114)
+
+Tagging as r115-release
+------------------------------------------------------------------------
+r114 | torhal | 2009-06-22 09:23:30 +0000 (Mon, 22 Jun 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In labelPrototype:SetupSell(): Set the fontstring's width always, not just when max_width is smaller than width - this should normalize the display when a previous call modified the width.
+
+------------------------------------------------------------------------
+r113 | torhal | 2009-06-22 08:17:30 +0000 (Mon, 22 Jun 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In CreateLine(): Make the line's parent be tooltip.scrollChild instead of tooltip, so that separators play nice with scrollable tooltips.
+
+------------------------------------------------------------------------
+r112 | adirelle | 2009-06-11 14:11:35 +0000 (Thu, 11 Jun 2009) | 1 line
+Changed paths:
+   D /trunk/.docmeta
+
+Removed useless .docmeta.
+------------------------------------------------------------------------
+r111 | torhal | 2009-06-11 08:55:24 +0000 (Thu, 11 Jun 2009) | 1 line
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In AutoHideTimerFrame_OnUpdate(): Fixed MouseIsOver() check.
+------------------------------------------------------------------------
+r110 | adirelle | 2009-06-11 06:03:51 +0000 (Thu, 11 Jun 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Fixed AutoHideTimerFrame_OnUpdate logic while keeping CPU usage low.
+
+------------------------------------------------------------------------
+r109 | torhal | 2009-06-10 21:19:43 +0000 (Wed, 10 Jun 2009) | 4 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In tipPrototype:SetAutoHideDelay(): Set the tooltip as the value of timerFrame.parent.
+In AutoHideTimerFrame_OnUpdate(): Revamped to always increment self.elapsed and check against self.delayed _before_ checking whether or not the mouse is over self.parent or self.alternateFrame. Decreased CPU usage from roughly 0.185/sec to roughly 0.045/sec.
+Upped MINOR to 23.
+
+------------------------------------------------------------------------
+r107 | torhal | 2009-06-03 03:59:55 +0000 (Wed, 03 Jun 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Adjusted ResetTooltipSize() - hopefully this fixes the right-edge clipping issue.
+
+------------------------------------------------------------------------
+r105 | torhal | 2009-06-01 01:06:20 +0000 (Mon, 01 Jun 2009) | 1 line
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Fixed default backdrop colors in tooltip:SetLineColor() and tooltip:SetColumnColor().
+------------------------------------------------------------------------
+r103 | torhal | 2009-05-29 03:02:14 +0000 (Fri, 29 May 2009) | 1 line
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Upped MINOR to 21
+------------------------------------------------------------------------
+r102 | torhal | 2009-05-29 02:14:42 +0000 (Fri, 29 May 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Bah. I knew I was overcomplicating things: Removed GetPosition() and its references in AcquireCell/ReleaseCell - replaced all that with labelPrototype:GetPosition()
+
+------------------------------------------------------------------------
+r100 | torhal | 2009-05-29 01:51:30 +0000 (Fri, 29 May 2009) | 5 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Added local function GetPosition() - assigned to a cell when it's acquired - which returns the cell's line and column.
+In _SetCell(): Added assignment of line and column data to the affected cell.
+In AcquireCell(): Added assignment of GetPosition() to the cell.
+In ReleaseCell(): Remove line, column, and GetPosition() from the cell.
+
+------------------------------------------------------------------------
+r99 | torhal | 2009-05-26 22:16:06 +0000 (Tue, 26 May 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In labelPrototype:SetupCell(): Added optional min_width parameter - verify that max_width is not less than min_width, and set return width value to min_width if it is smaller.
+
+------------------------------------------------------------------------
+r97 | torhal | 2009-05-26 07:43:57 +0000 (Tue, 26 May 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Completely removed dangling letter check in favor of simply adding 2 pixels to ResetTooltipSize().
+
+------------------------------------------------------------------------
+r96 | torhal | 2009-05-26 07:33:52 +0000 (Tue, 26 May 2009) | 3 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In labelPrototype:SetupCell(): Commented out dangling-letter check for the time being, and fix a bug with line-wrapping by re-setting the returned height value if max_width is set.
+In tipPrototype:AddSeparator(): Fixed clipping at the bottom of the tooltip by adding a call to SetTooltipSize().
+
+------------------------------------------------------------------------
+r94 | torhal | 2009-05-26 03:16:04 +0000 (Tue, 26 May 2009) | 5 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Fixed accidental globals and non-working tooltip:SetLineColor() - fucking copy-pasta.
+Replaced all occurances of "LibQTip" with "lib" for my own sanity.
+Upvalued "math" and "string.find".
+Upped MINOR to 20.
+Some miscellaneous file re-structuring.
+------------------------------------------------------------------------
+r92 | torhal | 2009-05-25 08:56:51 +0000 (Mon, 25 May 2009) | 5 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Renamed SeparatorBackdrop to GenericBackdrop.
+Removed deprecated tooltip methods AcquireLine() and AcquireColumn().
+Added tooltip methods SetColumnColor() and SetLineColor().
+Set MINOR to 19.
+
+------------------------------------------------------------------------
+r91 | adirelle | 2009-05-25 08:33:58 +0000 (Mon, 25 May 2009) | 1 line
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Dished the commented, bugged upgrade code since having spare frames at the time of upgrading is unlikely.
+------------------------------------------------------------------------
+r90 | torhal | 2009-05-25 08:04:45 +0000 (Mon, 25 May 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In labelPrototype:InitializeCell(): Removed FontString anchoring.
+In labelPrototype:SetupCell(): Replaced padding check to a check for l_pad and r_pad, and anchor the FontString using them. SetPoint() is evil - never count on defaults of 0 when you don't specify args!
+------------------------------------------------------------------------
+r89 | torhal | 2009-05-25 07:19:02 +0000 (Mon, 25 May 2009) | 3 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In labelPrototype:SetupCell(): Check for dangling letters - only add to height if found.
+In InitializeTooltip(): Set the tooltip's alpha level to that of GameTooltip so tooltip addons can skin it properly.
+
+------------------------------------------------------------------------
+r88 | torhal | 2009-05-24 16:45:51 +0000 (Sun, 24 May 2009) | 1 line
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+In ReleaseTooltip(): Remove the tooltip from the layoutCleaner registry.
+------------------------------------------------------------------------
+r86 | torhal | 2009-05-24 05:43:40 +0000 (Sun, 24 May 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Fixed debug substitutions.
+Placed upgrade code in debug comment block to stop it from breaking addons using older versions of the lib...
+------------------------------------------------------------------------
+r84 | torhal | 2009-05-24 02:29:54 +0000 (Sun, 24 May 2009) | 7 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Upvalued AcquireTable and ReleaseTable
+In lablePrototype:SetupCell(): Added checks for new (optional) parameters passed from SetCell() - padding and maxwidth.
+If maxwidth is less than the length of the text in the cell, the text will wrap to the next line.
+Fixed dangling letter clipping (bottoms of g, y, etc being cut off).
+AcquireTable() and ReleaseTable() are now used for a tooltip's columns, lines, and colspans - less GC!
+In LayoutColspans(), _SetCell(), and CreateLine(): Renamed "self" parameter to "tooltip".
+Upped MINOR to 18
+------------------------------------------------------------------------
+r83 | torhal | 2009-05-23 04:58:49 +0000 (Sat, 23 May 2009) | 15 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Added tableHeap, AcquireTable(), ReleaseTable() - at the moment only used in CreateLine() for line.cells
+In AcquireTooltip(): Renamed the tip variable to tooltip for consistency.
+In InitializeTooltip(): Renamed the self parameter to tooltip.
+In tipPrototype:Clear(): Use ReleaseTable() on line.cells, then set line.cells to nil.
+Hand-merged Elkano's changes to the r77 version:
+Relocated and grouped related functions and variables.
+Renamed SetTipSize() to SetTooltipSize() and reworked it to not be a member method of tipPrototype.
+Renamed FinalizeTooltip() to ReleaseTooltip() and relocated into it some code from tipPrototype:Release().
+Removed the tooltip parameter from providerPrototype:AcquireCell(), as it was unused.
+In tipPrototype:Clear(): Check if cell is non-nil before calling ReleaseCell().
+In AcquireCell(): Rename self parameter to tooltip, set cell._provider as provider parameter.
+In ReleaseCell(): Remove self parameter and all relevant checks.
+In _SetCell(): Remove cell._provider assignment, as this is now done in AcquireCell().
+In CreateLine(): Check for self.lines[lineNum] before acquiring a new line.
+
+------------------------------------------------------------------------
+r82 | adirelle | 2009-05-22 10:07:58 +0000 (Fri, 22 May 2009) | 2 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Do not forget oldminor may be nil.
+
+------------------------------------------------------------------------
+r81 | adirelle | 2009-05-22 09:07:57 +0000 (Fri, 22 May 2009) | 3 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Reset auto-hiding on release (so we recycle the timer frame).
+Properly recycle frame lineHeap and columnHeap when upgrading from version prior to minor 14.
+
+------------------------------------------------------------------------
+r80 | torhal | 2009-05-22 04:31:45 +0000 (Fri, 22 May 2009) | 4 lines
+Changed paths:
+   M /trunk/LibQTip-1.0.lua
+
+Re-instated the frameHeap. The lineHeap and columnHeap are no more.
+Added tipPrototype:AddSeparator() - allows the addition of a separator line with optional height, r, g, b, and alpha arguments.
+Reworked tipPrototype:SetAutoHideDelay() to use the frameHeap, and release self.autoHideTimerFrame when done.
+
+------------------------------------------------------------------------
