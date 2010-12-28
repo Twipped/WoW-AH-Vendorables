@@ -1,31 +1,40 @@
-Vendorables = LibStub("AceAddon-3.0"):NewAddon("Vendorables", "AceEvent-3.0", "AceConsole-3.0")
-Vendorables.AuctionData = {}
-Vendorables.AuctionHistory = {}
-Vendorables.TotalResults = 0
-Vendorables.LastRowCount = 0;
+Vendorables = LibStub("AceAddon-3.0"):NewAddon("Vendorables", "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0", "AceHook-3.0")
+
+Vendorables.BuyoutHits = {}
+Vendorables.TotalBuyoutHits = 0
+Vendorables.FullScan = false
+
+Vendorables.AHIsOpen = false
+
 local LDB = LibStub:GetLibrary("LibDataBroker-1.1")
---local L = LibStub("AceLocale-3.0"):GetLocale("Vendorables")
---local AceConfig = LibStub("AceConfig-3.0")
---local AceConfigDialog = LibStub("AceConfigDialog-3.0")
---local AceDB = LibStub("AceDB-3.0")
---local AceDBOptions = LibStub("AceDBOptions-3.0")
 local QTC = LibStub('LibQTipClick-1.1')
 
 local defaults = {
 	profile = {
 		LibDBIcon = { hide = false },
 		threshold = 100,
+		postProcessCount = 1000,
 		craftables = {
-			-- raw zephyrite
-			["52178"] = {{price=90000, craft="Jewelcrafting", creates=52086}},
-			["52179"] = {{price=90000, craft="Jewelcrafting", creates=52094}}
+			["52178"] = {{price=90000, craft="Jewelcrafting", creates=52086}}, -- raw zephyrite
+			["52179"] = {{price=90000, craft="Jewelcrafting", creates=52094}} -- raw alicite
 		}
-	},
-	realm = {
-		ScanTime = 0,
-		ScanData = {}
 	}
 }
+
+function Vendorables:OnInitialize()
+	Vendorables.db = LibStub("AceDB-3.0"):New("VendorablesDB", defaults)
+	self:RegisterEvent('AUCTION_ITEM_LIST_UPDATE')
+	self:RegisterEvent("AUCTION_HOUSE_SHOW");
+	self:RegisterEvent("AUCTION_HOUSE_CLOSED");
+	self:SecureHook("QueryAuctionItems",
+                    "QueryAuctionItems_Hook");
+
+end
+
+
+------------------------------------------------------------------------------------------------------------------------------
+-- LDB Functions
+------------------------------------------------------------------------------------------------------------------------------
 
 Vendorables.dataObject = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject("Vendorables", {
 	type = "data source",
@@ -40,48 +49,36 @@ Vendorables.dataObject = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject("
 })
 
 local function TooltipCallback(event, cell, arg, button)
-
 	if arg == "scan" then
 		Vendorables.FullScan = true
-		Vendorables.AuctionData = {}
-		Vendorables.AuctionHistory = {}
-		Vendorables.TotalResults = 0
-		Vendorables.db.realm.ScanData = {}
-		Vendorables.db.realm.ScanTime = time()
-		Vendorables:Print("Initiating Full Scan, please wait...")
-		QueryAuctionItems("",0,80,0,0,0,0,false,0,true)
+		Vendorables:Print("Initiating full scan, waiting for results...")
+		QueryAuctionItems("",0,0,0,0,0,0,0,0,true)
 
 	elseif arg == "clear" then
-		Vendorables.AuctionData = {}
+		Vendorables.BuyoutHits = {}
 		Vendorables.AuctionHistory = {}
-		Vendorables.TotalResults = 0
+		Vendorables.TotalBuyoutHits = 0
 		Vendorables:Print("Auction Data Cleared")
 		Vendorables.dataObject.text = "No Data"
 		
 	elseif arg == "output" then
 		Vendorables:Print("Current Results On File:")
-		for key, entry in pairs(Vendorables.AuctionData) do
+		for key, entry in pairs(Vendorables.BuyoutHits) do
 			local m
 			if entry['creates'] ~= nil then
 				m = entry['method']..entry['creates']
 			else
 				m = entry['method']
 			end
-			Vendorables:Print(entry['type'].." "..entry["total"].."x"..entry["link"].."  Lowest:"..Vendorables:CopperToString(entry['low']).."    "..m.."    Profit: "..Vendorables:CopperToString(entry['profit']))
+			Vendorables:Print(entry['type'].." "..entry["count"].."x"..entry["link"].."  Price:"..Vendorables:CopperToString(entry['price']).."    "..m.."    Profit: "..Vendorables:CopperToString(entry['profit']))
 		end
 		Vendorables:Print("End of Results")
 	end
-
 end
 
-
-function Vendorables:OnInitialize()
-	Vendorables.db = LibStub("AceDB-3.0"):New("VendorablesDB", defaults)
-	Vendorables:RegisterEvent('AUCTION_ITEM_LIST_UPDATE')
-end
 
 function Vendorables:ShowToolTip(frame)
-	if (InCombatLockdown()) then return end
+	if Vendorables.AHIsOpen==false then return end
 
 	tooltip = QTC:Acquire("Broker_VendorablesTooltip", 1, "LEFT")
 	tooltip:SmartAnchorTo(frame)
@@ -106,69 +103,126 @@ function Vendorables:ShowToolTip(frame)
 
 end
 
+
+------------------------------------------------------------------------------------------------------------------------------
+-- Events
+------------------------------------------------------------------------------------------------------------------------------
+
+function Vendorables:AUCTION_HOUSE_SHOW()
+	Vendorables.AHIsOpen = true
+end
+function Vendorables:AUCTION_HOUSE_CLOSED()
+	Vendorables.AHIsOpen = false
+end
+
+Vendorables.QueryPending = false
+function Vendorables:QueryAuctionItems_Hook()
+--	self:Print('QueryAuctionItems')
+	Vendorables.QueryPending = true;
+end
+
+Vendorables.Batch = nil
+Vendorables.AuctionCache = {}
 function Vendorables:AUCTION_ITEM_LIST_UPDATE()
+--	self:Print('AUCTION_ITEM_LIST_UPDATE')
+	-- we already processed the last query, ignore any further events
+	if Vendorables.QueryPending==false then return end
 	
-	local hitCount = 0;
-    local _,MaxAuctions = GetNumAuctionItems("list")
+	local Results = {}
+	local BatchCount, TotalCount = GetNumAuctionItems("list")
 	
-	Vendorables.LastRowCount = MaxAuctions
-	
-    for tableloop=1,MaxAuctions do
-		local name, texture, count, quality, canUse, level, minBid, minIncrement, buyoutPrice, bidAmount, highestBidder, owner, sold = GetAuctionItemInfo("list",tableloop)
-		
-		if name ~= nil and owner ~= nil then
-			local duration = GetAuctionItemTimeLeft("list", tableloop)
-			local link = GetAuctionItemLink("list", tableloop)
-			
-		--	if (buyoutPrice ~= nil) then
-				local uniq = strjoin('', name, count, minBid, buyoutPrice, owner, duration)
-		--	else
-		--		local uniq = strjoin('', name, count, minBid, owner, duration)
-		--	end
-			 
-			
-			if (link) then
-				local linkType, itemID, _,_,_,_,_,suffixId, uniqueId = strsplit(":", link)
-				local uniq = strjoin('', itemID, count, buyoutPrice, owner, duration)
+	if (TotalCount==0) then return end
 
-				
-				local boPrice = math.floor(buyoutPrice/count)
-				
-				if (buyoutPrice>0 and Vendorables.AuctionHistory[uniq]==nil) then
-					Vendorables.AuctionHistory[uniq] = true
-					local method, creates, profit = Vendorables:CheckPrice(itemID, buyoutPrice)
-					
-					if method ~= nil and profit~=nil and profit > Vendorables.db.profile.threshold then
-				
-						local key = method..":"..itemID
-						if (Vendorables.AuctionData[key] == nil) then
-							Vendorables.AuctionData[key] = {method=method, type="Buyout", link=link, low=boPrice, count=count, total=count, profit=profit, creates=creates}
-						else
-							if Vendorables.AuctionData[key]["low"] > boPrice then
-								Vendorables.AuctionData[key]["low"] = boPrice
-								Vendorables.AuctionData[key]["count"] = count
-							elseif Vendorables.AuctionData[key]["low"] == boPrice then
-								Vendorables.AuctionData[key]["count"] = Vendorables.AuctionData[key]["count"] + count
-							end
-							Vendorables.AuctionData[key]["total"] = Vendorables.AuctionData[key]["total"] + count
-						end
-						
-						hitCount = hitCount + 1
-						Vendorables.TotalResults = Vendorables.TotalResults + 1
-					end
-				end
-			end
-        end
-    end
-
-	if Vendorables.FullScan then
-		Vendorables.FullScan = false
-		Vendorables:Print("Scan complete, found "..#Vendorables.AuctionData.." undervalued items")
-	elseif hitCount>0 then
-		Vendorables:Print("Found "..hitCount.." new items")
+	local i, counted = 0,0
+	for i=1,BatchCount do
+		local item = self:GetAuctionItem(i)
+		if Vendorables.AuctionCache[item.hash] == nil then
+			Vendorables.AuctionCache[item.hash] = 1;
+			Vendorables:ProcessItem(item);
+			counted = counted + 1
+		else
+			Vendorables.AuctionCache[item.hash] = self.AuctionCache[item.hash] + 1;
+		end
 	end
 	
-	Vendorables.dataObject.text = (Vendorables.TotalResults).." Items"
+	Vendorables.dataObject.text = Vendorables.TotalBuyoutHits.." Items"
+
+	self:Print('Processed '..counted..'/'..BatchCount)
+		
+	Vendorables.FullScan = false
+	Vendorables.QueryPending = false
+end
+
+
+------------------------------------------------------------------------------------------------------------------------------
+-- Internal Functions
+------------------------------------------------------------------------------------------------------------------------------
+
+function Vendorables:GetAuctionItem(i)
+	local name, _, count, _, _, _, minBid, minIncrement, buyout, bidAmount, highestBidder, owner, sold = GetAuctionItemInfo("list",i)
+	local duration = GetAuctionItemTimeLeft("list", i)
+	local link = GetAuctionItemLink("list", i)
+	
+	--if owner == nil then return nil end
+	if owner == nil then owner = '' end
+	if name == nil then name = '' end
+	
+	local _, _, _, _, itemID, _, _, _, _, _, suffixID, uniqueID, _, _ = string.find(link, "|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")	
+	
+	local bid;
+	if bidAmount <= 0 then
+		bid = minBid;
+	else
+		bid = bidAmount + minIncrement;
+		if bid > buyout and buyout > 0 then
+			bid = buyout;
+		end
+	end
+
+	local hash = strjoin(':', itemID, suffixID, count, bid, buyout)
+  
+	return {
+		link = link, name = name, id = itemID, suffix = suffixID, unique = uniqueID, count = count,
+		bid = bid, buyout = buyout, owner = owner, duration = duration, hash = hash
+	}
+end
+
+function Vendorables:ProcessAuctions(Results)
+	Vendorables:Print('Processing '..#Results..' Records')
+	local i, item, counted = 0,0,0
+	for i,item in ipairs(Results) do
+		if Vendorables.AuctionCache[item.hash] == nil then
+			Vendorables.AuctionCache[item.hash] = 1;
+			Vendorables:ProcessItem(item);
+			counted = counted + 1
+		else
+			Vendorables.AuctionCache[item.hash] = self.AuctionCache[item.hash] + 1;
+		end
+	end
+	Vendorables:Print('Processed '..counted..'/'..#Results)
+
+	Vendorables.dataObject.text = Vendorables.TotalBuyoutHits.." Items"
+end
+
+function Vendorables:ProcessItem(item)
+	if item.buyout>0 then
+
+		local boPrice = math.floor(item.buyout/item.count)
+		buyMethod, buyCreates, buyProfit = Vendorables:CheckPrice(item.id, boPrice)
+
+		if method ~= nil and profit~=nil and profit > Vendorables.db.profile.threshold then
+		
+			local key = strjoin(':', method, item.id, boPrice)
+			if (Vendorables.BuyoutHits[key] == nil) then
+				Vendorables.BuyoutHits[key] = {method=method, link=item.link, price=boPrice, count=item.count, profit=profit, creates=creates}
+			else
+				Vendorables.BuyoutHits[key]["count"] = Vendorables.BuyoutHits[key]["count"] + item.count
+			end
+		
+			Vendorables.TotalBuyoutHits = Vendorables.TotalBuyoutHits + item.count		
+		
+		end
+	end
 end
 
 function Vendorables:CheckPrice(itemid, price)
@@ -193,7 +247,7 @@ function Vendorables:CheckPrice(itemid, price)
 	return method, creates, profit
 end
 
-function Vendorables:CopperToString(c)
+function Vendorables:CopperToString(c) -- shamelessly taken from Broker_DurabilityInfo
 	local str = ""
 	if not c or c < 0 then 
 		return str 
